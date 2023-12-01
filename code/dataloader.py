@@ -57,12 +57,16 @@ class BasicDataset(Dataset):
         """
         raise NotImplementedError
 
+
 class LastFM(BasicDataset):
-    pass
+    # TODO lastfm dataset to be done
+    raise NotImplementedError
+
 
 class Loader(BasicDataset):
     """
-    gowalla dataset
+    default gowalla dataset
+    can choose yelp2018 and amazon-book
     """
     def __init__(self, config=world.config, path="../data/gowalla"):
         # train or test
@@ -169,6 +173,14 @@ class Loader(BasicDataset):
     @property
     def trainDataSize(self):
         return self.traindataSize
+
+    @property
+    def testDict(self):
+        return self.__testDict
+
+    @property
+    def allPos(self):
+        return self._allPos
 
     def getUserPosItem(self, users):
         posItems = []
