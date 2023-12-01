@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 from torch.utils.data import Dataset
 
 import world
@@ -129,8 +130,33 @@ class Loader(BasicDataset):
         print(f"{world.dataset} Sparsity : {(self.trainDataSize + self.testDataSize) / self.n_users / self.m_items}")
 
         # (user, item), 二分图
-        # TODO 写到这里
+        # csr => compressed sparse row matrix
+        # row = np.array([0, 0, 1, 2, 2, 2])
+        # col = np.array([0, 2, 2, 0, 1, 2])
+        # data = np.array([1, 2, 3, 4, 5, 6])
+        # csr_matrix((data, (row, col)), shape=(3, 3)).toarray()
+        # >>> array([[1, 0, 2],
+        #           [0, 0, 3],
+        #           [4, 5, 6]])
+        # 这里就是相当于建立了一个 n*m training的稀疏矩阵,data全是1，行和列的坐标在self.trainUser, self.trainItem里一一对应
+        # 要注意这里的np.ones的dtype默认是float64
+        self.UserItemNet = csr_matrix((np.ones(len(self.trainUser), (self.trainUser, self.trainItem))),
+                            shape=(self.n_user, self.m_item))
+        # squeeze是把所有维度为1的给去掉。如果指定了axis，但是该axis的维度不是1，就会爆异常
+        # (n * m) sum=> (n, 1)这一步相当于计算每个user交互了几个商品 squeeze=> (n)
+        self.users_D = np.array(self.UserItemNet.sum(axis=1)).squeeze()
+        # (n * m) sum=> (1, m)这一步相当于计算每个item被交互了几次 squeeze=> (m)
+        self.items_D = np.array(self.UserItemNet.sum(axis=0)).squeeze()
+        # 这里就是检查一下，有没有用户或者商品是一次也没有交互过的(值为0)，那么就手动给它交互一次(值置1)
+        # 这里写0.或者0都可以，写0.是因为之前np.ones的dtype默认是float64
+        self.users_D[self.users_D == 0.] = 1
+        self.items_D[self.items_D == 0.] = 1
 
+        # 提前计算
+        # 从0到n - 1个user
+        self._allPos = self.getUserPosItem(list(range(self.n_user)))
+        self.__testDict = self.__build_test()
+        print(f"{world.dataset} is ready to go!")
 
     @property
     def n_users(self):
@@ -144,6 +170,29 @@ class Loader(BasicDataset):
     def trainDataSize(self):
         return self.traindataSize
 
+    def getUserPosItem(self, users):
+        posItems = []
+        for user in users:
+            # 在稀疏矩阵的每一行(每一个user)，找到对应不为0的item
+            # nonzero返回的是不为0的下标，一个tuple(row, col)
+            # 这里只取col，因为row值都相同,为user
+            posItems.append(self.UserItemNet[user].nonzero()[1])
+        return posItems
+
+    def __build_test(self):
+        """
+        返回一个字典
+        :return: dict: {user : [items]}
+        """
+        test_data = {}
+        for i, item in enumerate(self.testItem):
+            user = self.testUser[i]
+            # 如果之前有就直接加，没有就先创建一个
+            if test_data.get(user):
+                test_data[user].append(item)
+            else:
+                test_data[user] = [item]
+        return test_data
 
 
 
