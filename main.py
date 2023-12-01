@@ -1,23 +1,23 @@
 # This is a sample Python script.
 import numpy as np
+from scipy.sparse import csr_matrix
 
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-    myList = [456, 2, 0, 123, 874]
-    print(myList)
-    myList = np.array(myList)
+    row = np.array([0, 0, 1, 2, 2, 2])
+    col = np.array([0, 2, 2, 0, 1, 3])
+    data = np.array(np.ones(6))
+    sparse_m = csr_matrix((data, (row, col)), shape=(5, 7)).toarray()
+    print(sparse_m, 'shape = ', sparse_m.shape)
+    #
+    # users_D = np.array(sparse_m.sum(axis=1)).squeeze()
+    # items_D = np.array(sparse_m.sum(axis=0)).squeeze()
+    # print('users_D = ', users_D, 'shape = ', users_D.shape)
+    # print('items_D = ', items_D,  'shape = ', items_D.shape)
+    # print('=' * 30)
+    # users_D[users_D == 0.] = 1
+    # print('users_D = ', users_D)
+    # items_D[items_D == 0.] = 1
+    # print('items_D = ', items_D)
+    print(sparse_m.nonzero())
+    print(sparse_m.nonzero()[1])
 
-    print(myList)
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
