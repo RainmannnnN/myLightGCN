@@ -9,31 +9,53 @@ import torch.nn as nn
 
 if __name__ == '__main__':
 
-    matrix = np.array([[1., 0., 0., 0., 1., 1., 1.],
-                        [1., 0., 1., 0., 0., 0., 0.],
-                        [1., 1., 1., 0., 0., 0., 0.],
-                        [0., 0., 0., 0., 0., 1., 1.],
-                        [0., 1., 0., 1., 0., 0., 1.],
-                        [0., 1., 1., 0., 1., 0., 1.],
-                        [1., 0., 1., 0., 0., 1., 1.]])
-    matrix = sp.csr_matrix(matrix, dtype=np.float32)
-    print(matrix)
-    coo = matrix.tocoo()
-    print(f"coo shape is {coo.shape}")
-    # 分别打印一下看这三个属性是什么
-    pprint(coo.row)
-    pprint(coo.col)
-    pprint(coo.data)
-    # 转换成tensor
-    row = torch.tensor(coo.row).long()
-    col = torch.tensor(coo.col).long()
-    data = torch.FloatTensor(coo.data)
+    print("=========测试concat和stack的区别===========")
+    user_weight = torch.rand(5)
+    item_weight = torch.rand(5)
+    print(user_weight, item_weight)
+    all_emb = torch.cat([user_weight, item_weight])
+    print(all_emb, all_emb.size())
+    all_emb = torch.stack([user_weight, item_weight])
+    print(all_emb, all_emb.size())
 
-    index = torch.stack([row, col])
-    print(f"index is {index}")
-    print()
-    result = torch.sparse.FloatTensor(index, data, torch.Size(coo.shape))
-    pprint(result)
+    temp_emb = [user_weight, item_weight]
+    temp_emb = torch.cat(temp_emb)
+    print("temp_emb = ", temp_emb)
+
+    first_layer_output = torch.rand(7)
+    second_layer_output = torch.rand(7)
+    output = [first_layer_output, second_layer_output]
+    print("output is ", output)
+    final_output = torch.stack(output, dim=1)
+    print(final_output)
+    print("size of final_output is ", final_output.shape)
+
+    # print("=========以下是coo函数的test===========")
+    # matrix = np.array([[1., 0., 0., 0., 1., 1., 1.],
+    #                     [1., 0., 1., 0., 0., 0., 0.],
+    #                     [1., 1., 1., 0., 0., 0., 0.],
+    #                     [0., 0., 0., 0., 0., 1., 1.],
+    #                     [0., 1., 0., 1., 0., 0., 1.],
+    #                     [0., 1., 1., 0., 1., 0., 1.],
+    #                     [1., 0., 1., 0., 0., 1., 1.]])
+    # matrix = sp.csr_matrix(matrix, dtype=np.float32)
+    # print(matrix)
+    # coo = matrix.tocoo()
+    # print(f"coo shape is {coo.shape}")
+    # # 分别打印一下看这三个属性是什么
+    # pprint(coo.row)
+    # pprint(coo.col)
+    # pprint(coo.data)
+    # # 转换成tensor
+    # row = torch.tensor(coo.row).long()
+    # col = torch.tensor(coo.col).long()
+    # data = torch.FloatTensor(coo.data)
+    #
+    # index = torch.stack([row, col])
+    # print(f"index is {index}")
+    # print()
+    # result = torch.sparse.FloatTensor(index, data, torch.Size(coo.shape))
+    # pprint(result)
 
     # print("=========以下是sp.dok_matrix函数的test===========")
     # matrix = sp.dok_matrix((5, 5), dtype=float)
