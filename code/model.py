@@ -91,8 +91,29 @@ class LightGCN(BasicModel):
         self.Graph = self.dataset.getSparseGraph()
         print(f"lgn is already to go(dropout:{self.config['dropout']})")
 
-    def bpr_loss(self):
-        raise NotImplementedError
+    def bpr_loss(self, users, pos, neg):
+        """
+
+        :param users: 用户列表
+        :param pos: 正样例列表
+        :param neg: 负样例列表
+        :return: bpr损失，L2正则化损失
+        """
+        users_emb, pos_emb, neg_emb, userEmb0, posEmb0, negEmb0 \
+            = self.getEmbedding(users.long(), pos.long(), neg.long())
+        # L2正则化
+        reg_loss = (1 / 2) * (userEmb0.norm(2).pow(2) +
+                              posEmb0.norm(2).pow(2) +
+                              negEmb0.norm(2).pow(2)) / float(len(users))
+        # 分别计算正负样例的得分
+        pos_scores = torch.mul(users_emb, pos_emb)
+        pos_scores = torch.sum(pos_scores, dim=1)
+        neg_scores = torch.mul(users_emb, neg_emb)
+        neg_scores = torch.sum(neg_scores, dim=1)
+
+        loss = torch.mean(torch.nn.functional.softplus(neg_scores - pos_scores))
+
+        return loss, reg_loss
 
     def __dropout_x(self, x, keep_prob):
         """
@@ -186,10 +207,50 @@ class LightGCN(BasicModel):
         return users, items
 
     def getUsersRating(self, users):
-        raise NotImplementedError
+        """
+        返回指定users对所有items的rating
+        :param users: 指定的users
+        :return: 返回users对所有items的分数
+        """
+        # 先经过传播得到最后的embedding
+        all_users, all_items = self.computer()
+        # 根据users找到对应的embedding
+        users_emb = all_users[users.long()]
+        items_emb = all_items
+        # 相乘得到分数
+        rating = self.f(torch.matmul(users_emb, items_emb.t()))
+        return rating
 
     def getEmbedding(self, users, pos_items, neg_items):
-        raise NotImplementedError
+        """
+        根据users,pos_items,neg_items这三个列表产生对应的embedding
+        并且返回6个embedding
+        :param users: 用户列表
+        :param pos_items: 正item列表
+        :param neg_items: 负item列表
+        :return: 返回经过GCN的embedding（3个）和原本的embedding（3个）
+        """
+        # 这是最后的embedding
+        all_users, all_items = self.computer()
+        users_emb = all_users[users]
+        pos_emb = all_items[pos_items]
+        neg_emb = all_items[neg_items]
+        # 这是原本自己的embedding
+        users_emb_ego = self.embedding_user(users)
+        pos_emb_ego = self.embedding_item(pos_items)
+        neg_emb_ego = self.embedding_item(neg_items)
+        return users_emb, pos_emb, neg_emb, users_emb_ego, pos_emb_ego, neg_emb_ego
 
     def forward(self, users, items):
-        raise NotImplementedError
+        """
+        计算用户对物品的评分总合
+        :param users: 用户列表
+        :param items: 物品列表
+        :return: 每个用户对所有物品评分的总合 (len(users), 1)
+        """
+        all_users, all_items = self.computer()
+        users_emb = all_users[users]
+        items_emb = all_items[items]
+        inner_pro = torch.mul(users_emb, items_emb)
+        gamma = torch.sum(inner_pro, dim=1)
+        return gamma
