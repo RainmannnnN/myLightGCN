@@ -290,7 +290,7 @@ class Loader(BasicDataset):
                 end = start + fold_len
 
             A_hat_fold.append(self.convert_sp_mat_to_sp_tensor(A_hat[start:end]).coalesce().to(world.devices))
-            return A_hat_fold
+        return A_hat_fold
 
     def convert_sp_mat_to_sp_tensor(self, sp_mat):
         """
@@ -311,10 +311,13 @@ class Loader(BasicDataset):
         return torch.sparse.FloatTensor(indices=index, values=data, size=torch.Size(coo.shape))
 
     def getUserItemFeedback(self, users, items):
-        # TODO
-        pass
+        """
 
-
+        :param users:
+        :param items:
+        :return:
+        """
+        return np.array(self.UserItemNet[users, items]).astype('uint8').reshape((-1,))
 
 
 
